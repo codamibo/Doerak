@@ -1,11 +1,13 @@
 import numpy as np
+import math
 
 def draw_cards(src, dest, n):
-	cards = np.random.choice(range(len(src)), n, replace = False)
-	print('cards', cards)
-	for i in cards:
-		dest = np.append(dest, src[i])
-	src = np.delete(src, cards)
+	if n > 0:
+		cards = np.random.choice(range(len(src)), int(n), replace = False)
+		print('cards', cards)
+		for i in cards:
+			dest = np.append(dest, src[i])
+		src = np.delete(src, cards)
 	return src, dest
 
 def	valid_attack(player, table):
@@ -59,7 +61,6 @@ def game_turn(player1, player2, deck, turn, kozur_type):
 	# deck: cards remaining in the deck
 	# turn: 1 if player 1 is attacking, 2 if player 2 is attacking
 
-	turn = 1
 	table = []
 	valid_cards_at = []
 	valid_cards_def = []
@@ -70,9 +71,11 @@ def game_turn(player1, player2, deck, turn, kozur_type):
 		#attacker
 		print('deck', deck)
 		print('table', table)
-		print('Your options: ', players[attacker_index])
+		print('Your choice: ', players[attacker_index])
 		if len(table) > 0:
+			print('For aboy type -1\n')
 			valid_cards_at = valid_attack(players[attacker_index], table)
+			print('valid cards attack', valid_cards_at)
 			card_index = inputNumber(valid_cards_at)
 			if card_index == -1:
 				return players[0], players[1], deck, (turn % 2) + 1	
@@ -86,15 +89,59 @@ def game_turn(player1, player2, deck, turn, kozur_type):
 		print('table', table)
 		print('Your options: ', players[defender_index])
 		valid_cards_def = valid_defense(players[defender_index], table[-1], kozur_type)
+		print('valid def options', valid_cards_def)
 		card_index = input('For surrender type -1\n Your choice: ')
-		while card_index is int and card_index not in valid_cards_def and card_index != -1:
+		while card_index not in valid_cards_def and card_index != -1:
 			print('Not a valid move! Try again!')
-			card_index = input('For aboy type -1\n Your choice: ')
+			card_index = input('For surrender type -1\n Your choice: ')
 		if card_index == -1:
 			table, players[defender_index] = draw_cards(table, players[defender_index], len(table))
 			return players[0], players[1], deck, turn
 		table.append(players[defender_index][card_index])
 		players[defender_index] = np.delete(players[defender_index], card_index)
-
 	return players[0], players[1], deck, turn
 	
+def fill_hands(player1, player2, deck, kozur, previous_turn):
+	n_1 = 0
+	n_2 = 0
+	take_kozur = 0
+	total = 0
+	pp = 0
+	draw_start = 1
+	if len(deck) + 1 <= max(6 - len(player1), 0) + max(6 - len(player2), 0):
+		total = len(player1) + len(player2) + len(deck) + 1
+		pp = float(total) / 2.
+		if previous_turn == 1 and len(player2) < pp:
+			take_kozur = 2
+			draw_start = 1
+		elif previous_turn == 2 and len(player1) < pp:
+			take_kozur = 1 
+			draw_start = 2
+		elif (previous_turn == 1):
+			take_kozur = 1
+			draw_start = 2
+		else:
+			take_kozur = 2
+			draw_start = 1
+		while n_1 + n_2 < len(deck):
+			if draw_start == 1 and len(player1) < pp:
+				n_1 += 1
+			elif draw_start == 2 and len(player2) < pp:
+				n_2 += 1
+			if len(player1) < len(player2):
+				draw_start = 1
+			else:
+				draw_start = 2
+		deck, player1 = draw_cards(deck, player1, n_1)
+		deck, player2 = draw_cards(deck, player2, n_2)
+		if take_kozur == 2:
+			kozur, player2 = draw_cards(kozur, player2, 1)
+		elif take_kozur == 1:
+			kozur, player1 = draw_cards(kozur, player1, 1)
+	elif len(deck) >= max(6 - len(player1), 0) + max(6 - len(player2), 0):
+		n_1 = max(6 - len(player1), 0)
+		n_2 = max(6 - len(player2), 0)
+		deck, player1 = draw_cards(deck, player1, n_1)
+		deck, player2 = draw_cards(deck, player2, n_2)	
+	
+	return player1, player2, deck, kozur
