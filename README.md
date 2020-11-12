@@ -1,2 +1,2 @@
 # durak
-Russian card game durak
+Program to play the Russian card game durak
